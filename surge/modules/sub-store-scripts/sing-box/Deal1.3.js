@@ -62,7 +62,27 @@ function removeAllAndFilter(obj) {
 
 config = removeAllAndFilter(config); // Clean up the config after parsing
 
-log(`③ 获取订阅`)
+log(`③ 去除特定配置`)
+function removeSpecificConfig(config) {
+  if (Array.isArray(config)) {
+    return config.filter(item => {
+      // Remove object that matches the specified pattern
+      return !(item.tag === 'auto' && item.type === 'urltest' && item.outbounds.length === 0 && item.url === 'http://www.gstatic.com/generate_204' && item.interval === '10m' && item.tolerance === 50);
+    }).map(removeSpecificConfig); // Recursively clean nested arrays
+  }
+  if (typeof config === 'object' && config !== null) {
+    const newObj = {};
+    for (const [key, value] of Object.entries(config)) {
+      newObj[key] = removeSpecificConfig(value); // Recursively clean nested objects
+    }
+    return newObj;
+  }
+  return config; // Return the value as is if it's neither an array nor object
+}
+
+config = removeSpecificConfig(config); // Remove the specific configuration object
+
+log(`④ 获取订阅`)
 log(`将读取名称为 ${name} 的 ${type === 'collection' ? '组合' : ''}订阅`)
 let proxies = await produceArtifact({
   name,
@@ -74,7 +94,7 @@ let proxies = await produceArtifact({
   },
 })
 
-log(`④ outbound 规则解析`)
+log(`⑤ outbound 规则解析`)
 const outbounds = outbound
   .split('🕳')
   .filter(i => i)
@@ -85,7 +105,7 @@ const outbounds = outbound
     return [outboundPattern, tagRegex]
   })
 
-log(`⑤ outbound 插入节点`)
+log(`⑥ outbound 插入节点`)
 config.outbounds.map(outbound => {
   outbounds.map(([outboundPattern, tagRegex]) => {
     const outboundRegex = createOutboundRegExp(outboundPattern)
@@ -106,7 +126,7 @@ const compatible_outbound = {
 }
 
 let compatible
-log(`⑥ 空 outbounds 检查`)
+log(`⑦ 空 outbounds 检查`)
 config.outbounds.map(outbound => {
   outbounds.map(([outboundPattern, tagRegex]) => {
     const outboundRegex = createOutboundRegExp(outboundPattern)
