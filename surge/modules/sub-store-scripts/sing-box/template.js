@@ -1,4 +1,4 @@
-// https://raw.githubusercontent.com/xream/scripts/main/surge/modules/sub-store-scripts/sing-box/template.js#type=组合订阅&name=机场&outbound=🕳ℹ️all|all-auto🕳ℹ️hk|hk-auto🏷ℹ️港|hk|hongkong|kong kong|🇭🇰🕳ℹ️tw|tw-auto🏷ℹ️台|tw|taiwan|🇹🇼🕳ℹ️jp|jp-auto🏷ℹ️日本|jp|japan|🇯🇵🕳ℹ️sg|sg-auto🏷ℹ️^(?!.*(?:us)).*(新|sg|singapore|🇸🇬)🕳ℹ️us|us-auto🏷ℹ️美|us|unitedstates|united states|🇺🇸
+// https://raw.githubusercontent.com/xream/scripts/main/surge/modules/sub-store-scripts/sing-box/template.js#type=组合订阅&name=机场&outbound=🕳ℹ️Others|all|all-auto🕳ℹ️HongKong|hk|hk-auto🏷ℹ️港|hk|hongkong|kong kong|🇭🇰🕳ℹ️TaiWan|tw|tw-auto🏷ℹ️台|tw|taiwan|🇹🇼🕳ℹ️Japan|jp|jp-auto🏷ℹ️日本|jp|japan|🇯🇵🕳ℹ️Singapore|sg|sg-auto🏷ℹ️^(?!.*(?:us)).*(新|sg|singapore|🇸🇬)🕳ℹ️America|us|us-auto🏷ℹ️美|us|unitedstates|united states|🇺🇸
 
 // 示例说明
 // 读取 名称为 "机场" 的 组合订阅 中的节点(单订阅不需要设置 type 参数)
@@ -24,7 +24,28 @@ try {
   log(`${e.message ?? e}`)
   throw new Error('配置文件不是合法的 JSON')
 }
-log(`② 获取订阅`)
+
+log(`② 清除 {all} 和 "filter": [] 及其内容`)
+function removeAllAndFilter(obj) {
+  if (Array.isArray(obj)) {
+    return obj.map(removeAllAndFilter);
+  }
+  if (typeof obj === 'object' && obj !== null) {
+    const newObj = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (key === "filter" || key === "filter" && Array.isArray(value) && value.length === 0) {
+        continue; // Skip this key-value pair
+      }
+      newObj[key] = removeAllAndFilter(value); // Recursively clean nested objects
+    }
+    return newObj;
+  }
+  return obj; // Return the value as is if it's neither an array nor object
+}
+
+config = removeAllAndFilter(config);
+
+log(`③ 获取订阅`)
 log(`将读取名称为 ${name} 的 ${type === 'collection' ? '组合' : ''}订阅`)
 let proxies = await produceArtifact({
   name,
@@ -35,7 +56,8 @@ let proxies = await produceArtifact({
     'include-unsupported-proxy': includeUnsupportedProxy,
   },
 })
-log(`③ outbound 规则解析`)
+
+log(`④ outbound 规则解析`)
 const outbounds = outbound
   .split('🕳')
   .filter(i => i)
@@ -46,7 +68,7 @@ const outbounds = outbound
     return [outboundPattern, tagRegex]
   })
 
-log(`④ outbound 插入节点`)
+log(`⑤ outbound 插入节点`)
 config.outbounds.map(outbound => {
   outbounds.map(([outboundPattern, tagRegex]) => {
     const outboundRegex = createOutboundRegExp(outboundPattern)
@@ -67,7 +89,7 @@ const compatible_outbound = {
 }
 
 let compatible
-log(`⑤ 空 outbounds 检查`)
+log(`⑥ 空 outbounds 检查`)
 config.outbounds.map(outbound => {
   outbounds.map(([outboundPattern, tagRegex]) => {
     const outboundRegex = createOutboundRegExp(outboundPattern)
