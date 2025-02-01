@@ -25,26 +25,42 @@ try {
   throw new Error('配置文件不是合法的 JSON')
 }
 
-log(`② 清除 {all} 作为值 和 "filter": [] 及其内容`)
+log(`② 清除 {all} 作为值 和 "filter" 作为键`)
 function removeAllAndFilter(obj) {
   if (Array.isArray(obj)) {
-    return obj.filter(item => item !== '{all}' && (typeof item !== 'object' || !('filter' in item) || item.filter.length > 0))
-              .map(removeAllAndFilter); // Filter out '{all}' and empty filters
+    return obj
+      .map(item => {
+        // If the item is an object, recursively clean it
+        if (typeof item === 'object' && item !== null) {
+          return removeAllAndFilter(item);
+        }
+        return item === '{all}' ? null : item; // Replace `{all}` with `null`
+      })
+      .filter(item => item !== null); // Filter out nulls (the {all} values)
   }
+
   if (typeof obj === 'object' && obj !== null) {
     const newObj = {};
     for (const [key, value] of Object.entries(obj)) {
-      if (value === '{all}' || (key === "filter" && Array.isArray(value) && value.length === 0)) {
-        continue; // Skip '{all}' values and empty "filter" arrays
+      // Remove the key-value pair if the key is 'filter'
+      if (key === 'filter') {
+        continue; // Skip 'filter' key entirely
       }
-      newObj[key] = removeAllAndFilter(value); // Recursively clean nested objects
+
+      // If the value is '{all}', remove the value but keep the key
+      if (value === '{all}') {
+        newObj[key] = null; // Set the value to null if it's '{all}'
+      } else {
+        newObj[key] = removeAllAndFilter(value); // Recursively clean nested objects
+      }
     }
     return newObj;
   }
+
   return obj; // Return the value as is if it's neither an array nor object
 }
 
-config = removeAllAndFilter(config);
+config = removeAllAndFilter(config); // Clean up the config after parsing
 
 log(`③ 获取订阅`)
 log(`将读取名称为 ${name} 的 ${type === 'collection' ? '组合' : ''}订阅`)
