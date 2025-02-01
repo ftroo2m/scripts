@@ -25,16 +25,17 @@ try {
   throw new Error('配置文件不是合法的 JSON')
 }
 
-log(`② 清除 {all} 和 "filter": [] 及其内容`)
+log(`② 清除 {all} 作为值 和 "filter": [] 及其内容`)
 function removeAllAndFilter(obj) {
   if (Array.isArray(obj)) {
-    return obj.map(removeAllAndFilter);
+    return obj.filter(item => item !== '{all}' && (typeof item !== 'object' || !('filter' in item) || item.filter.length > 0))
+              .map(removeAllAndFilter); // Filter out '{all}' and empty filters
   }
   if (typeof obj === 'object' && obj !== null) {
     const newObj = {};
     for (const [key, value] of Object.entries(obj)) {
-      if (key==="{all}" || key === "filter" || key === "filter" && Array.isArray(value) && value.length === 0) {
-        continue; // Skip this key-value pair
+      if (value === '{all}' || (key === "filter" && Array.isArray(value) && value.length === 0)) {
+        continue; // Skip '{all}' values and empty "filter" arrays
       }
       newObj[key] = removeAllAndFilter(value); // Recursively clean nested objects
     }
