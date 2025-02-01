@@ -33,7 +33,7 @@ function removeAllAndFilter(obj) {
   if (typeof obj === 'object' && obj !== null) {
     const newObj = {};
     for (const [key, value] of Object.entries(obj)) {
-      if (key==="all" || key === "filter" || key === "filter" && Array.isArray(value) && value.length === 0) {
+      if (key==="{all}" || key === "filter" || key === "filter" && Array.isArray(value) && value.length === 0) {
         continue; // Skip this key-value pair
       }
       newObj[key] = removeAllAndFilter(value); // Recursively clean nested objects
